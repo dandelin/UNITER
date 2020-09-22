@@ -18,18 +18,17 @@ def warmup_linear(step, warmup_step, tot_step):
     """ BERT schedule """
     if step < warmup_step:
         return step / warmup_step
-    return max(0, (tot_step-step)/(tot_step-warmup_step))
+    return max(0, (tot_step - step) / (tot_step - warmup_step))
 
 
-def vqa_schedule(step, warmup_interval, decay_interval,
-                 decay_start, decay_rate):
+def vqa_schedule(step, warmup_interval, decay_interval, decay_start, decay_rate):
     """ VQA schedule from MCAN """
     if step < warmup_interval:
-        return 1/4
+        return 1 / 4
     elif step < 2 * warmup_interval:
-        return 2/4
+        return 2 / 4
     elif step < 3 * warmup_interval:
-        return 3/4
+        return 3 / 4
     elif step >= decay_start:
         num_decay = ceil((step - decay_start) / decay_interval)
         return decay_rate ** num_decay
@@ -40,7 +39,8 @@ def vqa_schedule(step, warmup_interval, decay_interval,
 def get_lr_sched(global_step, opts):
     # learning rate scheduling
     lr_this_step = opts.learning_rate * warmup_linear(
-        global_step, opts.warmup_steps, opts.num_train_steps)
+        global_step, opts.warmup_steps, opts.num_train_steps
+    )
     if lr_this_step <= 0:
         lr_this_step = 1e-8
     return lr_this_step

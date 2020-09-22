@@ -10,30 +10,31 @@ from torch.nn.init import xavier_normal_, xavier_uniform_, constant_
 from torch.nn.functional import linear, softmax, dropout
 
 
-def multi_head_attention_forward(query,                           # type: Tensor
-                                 key,                             # type: Tensor
-                                 value,                           # type: Tensor
-                                 embed_dim_to_check,              # type: int
-                                 num_heads,                       # type: int
-                                 in_proj_weight,                  # type: Tensor
-                                 in_proj_bias,                    # type: Tensor
-                                 bias_k,                          # type: Optional[Tensor]
-                                 bias_v,                          # type: Optional[Tensor]
-                                 add_zero_attn,                   # type: bool
-                                 dropout_p,                       # type: float
-                                 out_proj_weight,                 # type: Tensor
-                                 out_proj_bias,                   # type: Tensor
-                                 training=True,                   # type: bool
-                                 key_padding_mask=None,           # type: Optional[Tensor]
-                                 need_weights=True,               # type: bool
-                                 attn_mask=None,                  # type: Optional[Tensor]
-                                 use_separate_proj_weight=False,  # type: bool
-                                 q_proj_weight=None,              # type: Optional[Tensor]
-                                 k_proj_weight=None,              # type: Optional[Tensor]
-                                 v_proj_weight=None,              # type: Optional[Tensor]
-                                 static_k=None,                   # type: Optional[Tensor]
-                                 static_v=None                    # type: Optional[Tensor]
-                                 ):
+def multi_head_attention_forward(
+    query,  # type: Tensor
+    key,  # type: Tensor
+    value,  # type: Tensor
+    embed_dim_to_check,  # type: int
+    num_heads,  # type: int
+    in_proj_weight,  # type: Tensor
+    in_proj_bias,  # type: Tensor
+    bias_k,  # type: Optional[Tensor]
+    bias_v,  # type: Optional[Tensor]
+    add_zero_attn,  # type: bool
+    dropout_p,  # type: float
+    out_proj_weight,  # type: Tensor
+    out_proj_bias,  # type: Tensor
+    training=True,  # type: bool
+    key_padding_mask=None,  # type: Optional[Tensor]
+    need_weights=True,  # type: bool
+    attn_mask=None,  # type: Optional[Tensor]
+    use_separate_proj_weight=False,  # type: bool
+    q_proj_weight=None,  # type: Optional[Tensor]
+    k_proj_weight=None,  # type: Optional[Tensor]
+    v_proj_weight=None,  # type: Optional[Tensor]
+    static_k=None,  # type: Optional[Tensor]
+    static_v=None,  # type: Optional[Tensor]
+):
     # type: (...) -> Tuple[Tensor, Optional[Tensor]]
     r"""
     Args:
@@ -168,8 +169,10 @@ def multi_head_attention_forward(query,                           # type: Tensor
 
         if in_proj_bias is not None:
             q = linear(query, q_proj_weight_non_opt, in_proj_bias[0:embed_dim])
-            k = linear(key, k_proj_weight_non_opt, in_proj_bias[embed_dim:(embed_dim * 2)])
-            v = linear(value, v_proj_weight_non_opt, in_proj_bias[(embed_dim * 2):])
+            k = linear(
+                key, k_proj_weight_non_opt, in_proj_bias[embed_dim : (embed_dim * 2)]
+            )
+            v = linear(value, v_proj_weight_non_opt, in_proj_bias[(embed_dim * 2) :])
         else:
             q = linear(query, q_proj_weight_non_opt, in_proj_bias)
             k = linear(key, k_proj_weight_non_opt, in_proj_bias)
@@ -181,15 +184,29 @@ def multi_head_attention_forward(query,                           # type: Tensor
             k = torch.cat([k, bias_k.repeat(1, bsz, 1)])
             v = torch.cat([v, bias_v.repeat(1, bsz, 1)])
             if attn_mask is not None:
-                attn_mask = torch.cat([attn_mask,
-                                      torch.zeros((attn_mask.size(0), 1),
-                                                  dtype=attn_mask.dtype,
-                                                  device=attn_mask.device)], dim=1)
+                attn_mask = torch.cat(
+                    [
+                        attn_mask,
+                        torch.zeros(
+                            (attn_mask.size(0), 1),
+                            dtype=attn_mask.dtype,
+                            device=attn_mask.device,
+                        ),
+                    ],
+                    dim=1,
+                )
             if key_padding_mask is not None:
                 key_padding_mask = torch.cat(
-                    [key_padding_mask, torch.zeros((key_padding_mask.size(0), 1),
-                                                   dtype=key_padding_mask.dtype,
-                                                   device=key_padding_mask.device)], dim=1)
+                    [
+                        key_padding_mask,
+                        torch.zeros(
+                            (key_padding_mask.size(0), 1),
+                            dtype=key_padding_mask.dtype,
+                            device=key_padding_mask.device,
+                        ),
+                    ],
+                    dim=1,
+                )
         else:
             assert static_k is None, "bias cannot be added to static key."
             assert static_v is None, "bias cannot be added to static value."
@@ -221,17 +238,48 @@ def multi_head_attention_forward(query,                           # type: Tensor
 
     if add_zero_attn:
         src_len += 1
-        k = torch.cat([k, torch.zeros((k.size(0), 1) + k.size()[2:], dtype=k.dtype, device=k.device)], dim=1)
-        v = torch.cat([v, torch.zeros((v.size(0), 1) + v.size()[2:], dtype=v.dtype, device=v.device)], dim=1)
+        k = torch.cat(
+            [
+                k,
+                torch.zeros(
+                    (k.size(0), 1) + k.size()[2:], dtype=k.dtype, device=k.device
+                ),
+            ],
+            dim=1,
+        )
+        v = torch.cat(
+            [
+                v,
+                torch.zeros(
+                    (v.size(0), 1) + v.size()[2:], dtype=v.dtype, device=v.device
+                ),
+            ],
+            dim=1,
+        )
         if attn_mask is not None:
-            attn_mask = torch.cat([attn_mask, torch.zeros((attn_mask.size(0), 1),
-                                                          dtype=attn_mask.dtype,
-                                                          device=attn_mask.device)], dim=1)
+            attn_mask = torch.cat(
+                [
+                    attn_mask,
+                    torch.zeros(
+                        (attn_mask.size(0), 1),
+                        dtype=attn_mask.dtype,
+                        device=attn_mask.device,
+                    ),
+                ],
+                dim=1,
+            )
         if key_padding_mask is not None:
             key_padding_mask = torch.cat(
-                [key_padding_mask, torch.zeros((key_padding_mask.size(0), 1),
-                                               dtype=key_padding_mask.dtype,
-                                               device=key_padding_mask.device)], dim=1)
+                [
+                    key_padding_mask,
+                    torch.zeros(
+                        (key_padding_mask.size(0), 1),
+                        dtype=key_padding_mask.dtype,
+                        device=key_padding_mask.device,
+                    ),
+                ],
+                dim=1,
+            )
 
     attn_output_weights = torch.bmm(q, k.transpose(1, 2))
     assert list(attn_output_weights.size()) == [bsz * num_heads, tgt_len, src_len]
@@ -243,13 +291,13 @@ def multi_head_attention_forward(query,                           # type: Tensor
     if key_padding_mask is not None:
         attn_output_weights = attn_output_weights.view(bsz, num_heads, tgt_len, src_len)
         attn_output_weights = attn_output_weights.masked_fill(
-            key_padding_mask.unsqueeze(1).unsqueeze(2),
-            float('-inf'),
+            key_padding_mask.unsqueeze(1).unsqueeze(2), float("-inf"),
         )
-        attn_output_weights = attn_output_weights.view(bsz * num_heads, tgt_len, src_len)
+        attn_output_weights = attn_output_weights.view(
+            bsz * num_heads, tgt_len, src_len
+        )
 
-    attn_output_weights = softmax(
-        attn_output_weights, dim=-1)
+    attn_output_weights = softmax(attn_output_weights, dim=-1)
     attn_output_weights = dropout(attn_output_weights, p=dropout_p, training=training)
 
     attn_output = torch.bmm(attn_output_weights, v)
@@ -294,7 +342,17 @@ class MultiheadAttention(Module):
         >>> attn_output, attn_output_weights = multihead_attn(query, key, value)
     """
 
-    def __init__(self, embed_dim, num_heads, dropout=0., bias=True, add_bias_kv=False, add_zero_attn=False, kdim=None, vdim=None):
+    def __init__(
+        self,
+        embed_dim,
+        num_heads,
+        dropout=0.0,
+        bias=True,
+        add_bias_kv=False,
+        add_zero_attn=False,
+        kdim=None,
+        vdim=None,
+    ):
         super(MultiheadAttention, self).__init__()
         self.embed_dim = embed_dim
         self.kdim = kdim if kdim is not None else embed_dim
@@ -304,7 +362,9 @@ class MultiheadAttention(Module):
         self.num_heads = num_heads
         self.dropout = dropout
         self.head_dim = embed_dim // num_heads
-        assert self.head_dim * num_heads == self.embed_dim, "embed_dim must be divisible by num_heads"
+        assert (
+            self.head_dim * num_heads == self.embed_dim
+        ), "embed_dim must be divisible by num_heads"
 
         self.in_proj_weight = Parameter(torch.empty(3 * embed_dim, embed_dim))
 
@@ -316,7 +376,7 @@ class MultiheadAttention(Module):
         if bias:
             self.in_proj_bias = Parameter(torch.empty(3 * embed_dim))
         else:
-            self.register_parameter('in_proj_bias', None)
+            self.register_parameter("in_proj_bias", None)
         self.out_proj = Linear(embed_dim, embed_dim, bias=bias)
 
         if add_bias_kv:
@@ -338,15 +398,22 @@ class MultiheadAttention(Module):
             xavier_uniform_(self.v_proj_weight)
 
         if self.in_proj_bias is not None:
-            constant_(self.in_proj_bias, 0.)
-            constant_(self.out_proj.bias, 0.)
+            constant_(self.in_proj_bias, 0.0)
+            constant_(self.out_proj.bias, 0.0)
         if self.bias_k is not None:
             xavier_normal_(self.bias_k)
         if self.bias_v is not None:
             xavier_normal_(self.bias_v)
 
-    def forward(self, query, key, value, key_padding_mask=None,
-                need_weights=True, attn_mask=None):
+    def forward(
+        self,
+        query,
+        key,
+        value,
+        key_padding_mask=None,
+        need_weights=True,
+        attn_mask=None,
+    ):
         r"""
     Args:
         query, key, value: map a query and a set of key-value pairs to an output.
@@ -375,28 +442,54 @@ class MultiheadAttention(Module):
         - attn_output_weights: :math:`(N, L, S)` where N is the batch size,
           L is the target sequence length, S is the source sequence length.
         """
-        if hasattr(self, '_qkv_same_embed_dim') and self._qkv_same_embed_dim is False:
+        if hasattr(self, "_qkv_same_embed_dim") and self._qkv_same_embed_dim is False:
             return multi_head_attention_forward(
-                query, key, value, self.embed_dim, self.num_heads,
-                self.in_proj_weight, self.in_proj_bias,
-                self.bias_k, self.bias_v, self.add_zero_attn,
-                self.dropout, self.out_proj.weight, self.out_proj.bias,
+                query,
+                key,
+                value,
+                self.embed_dim,
+                self.num_heads,
+                self.in_proj_weight,
+                self.in_proj_bias,
+                self.bias_k,
+                self.bias_v,
+                self.add_zero_attn,
+                self.dropout,
+                self.out_proj.weight,
+                self.out_proj.bias,
                 training=self.training,
-                key_padding_mask=key_padding_mask, need_weights=need_weights,
-                attn_mask=attn_mask, use_separate_proj_weight=True,
-                q_proj_weight=self.q_proj_weight, k_proj_weight=self.k_proj_weight,
-                v_proj_weight=self.v_proj_weight)
+                key_padding_mask=key_padding_mask,
+                need_weights=need_weights,
+                attn_mask=attn_mask,
+                use_separate_proj_weight=True,
+                q_proj_weight=self.q_proj_weight,
+                k_proj_weight=self.k_proj_weight,
+                v_proj_weight=self.v_proj_weight,
+            )
         else:
-            if not hasattr(self, '_qkv_same_embed_dim'):
-                warnings.warn('A new version of MultiheadAttention module has been implemented. \
-                    Please re-train your model with the new module',
-                              UserWarning)
+            if not hasattr(self, "_qkv_same_embed_dim"):
+                warnings.warn(
+                    "A new version of MultiheadAttention module has been implemented. \
+                    Please re-train your model with the new module",
+                    UserWarning,
+                )
 
             return multi_head_attention_forward(
-                query, key, value, self.embed_dim, self.num_heads,
-                self.in_proj_weight, self.in_proj_bias,
-                self.bias_k, self.bias_v, self.add_zero_attn,
-                self.dropout, self.out_proj.weight, self.out_proj.bias,
+                query,
+                key,
+                value,
+                self.embed_dim,
+                self.num_heads,
+                self.in_proj_weight,
+                self.in_proj_bias,
+                self.bias_k,
+                self.bias_v,
+                self.add_zero_attn,
+                self.dropout,
+                self.out_proj.weight,
+                self.out_proj.bias,
                 training=self.training,
-                key_padding_mask=key_padding_mask, need_weights=need_weights,
-                attn_mask=attn_mask)
+                key_padding_mask=key_padding_mask,
+                need_weights=need_weights,
+                attn_mask=attn_mask,
+            )

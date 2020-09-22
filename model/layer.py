@@ -56,7 +56,8 @@ class BertSelfAttention(nn.Module):
         if config.hidden_size % config.num_attention_heads != 0:
             raise ValueError(
                 "The hidden size (%d) is not a multiple of the number of attention "
-                "heads (%d)" % (config.hidden_size, config.num_attention_heads))
+                "heads (%d)" % (config.hidden_size, config.num_attention_heads)
+            )
         self.num_attention_heads = config.num_attention_heads
         self.attention_head_size = int(config.hidden_size / config.num_attention_heads)
         self.all_head_size = self.num_attention_heads * self.attention_head_size
@@ -68,7 +69,10 @@ class BertSelfAttention(nn.Module):
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
 
     def transpose_for_scores(self, x):
-        new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
+        new_x_shape = x.size()[:-1] + (
+            self.num_attention_heads,
+            self.attention_head_size,
+        )
         x = x.view(*new_x_shape)
         return x.permute(0, 2, 1, 3)
 
@@ -209,12 +213,13 @@ class BertLMPredictionHead(nn.Module):
 
         # The output weights are the same as the input embeddings, but there is
         # an output-only bias for each token.
-        self.decoder = nn.Linear(bert_model_embedding_weights.size(1),
-                                 bert_model_embedding_weights.size(0),
-                                 bias=False)
+        self.decoder = nn.Linear(
+            bert_model_embedding_weights.size(1),
+            bert_model_embedding_weights.size(0),
+            bias=False,
+        )
         self.decoder.weight = bert_model_embedding_weights
-        self.bias = nn.Parameter(
-            torch.zeros(bert_model_embedding_weights.size(0)))
+        self.bias = nn.Parameter(torch.zeros(bert_model_embedding_weights.size(0)))
 
     def forward(self, hidden_states):
         hidden_states = self.transform(hidden_states)
@@ -225,8 +230,7 @@ class BertLMPredictionHead(nn.Module):
 class BertOnlyMLMHead(nn.Module):
     def __init__(self, config, bert_model_embedding_weights):
         super(BertOnlyMLMHead, self).__init__()
-        self.predictions = BertLMPredictionHead(config,
-                                                bert_model_embedding_weights)
+        self.predictions = BertLMPredictionHead(config, bert_model_embedding_weights)
 
     def forward(self, sequence_output):
         prediction_scores = self.predictions(sequence_output)

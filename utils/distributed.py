@@ -28,7 +28,7 @@ def all_reduce_and_rescale_tensors(tensors, rescale_denom):
     offset = 0
     for t in tensors:
         numel = t.numel()
-        buffer_t[offset:offset+numel].copy_(t.view(-1))
+        buffer_t[offset : offset + numel].copy_(t.view(-1))
         offset += numel
 
     # all-reduce and rescale
@@ -39,12 +39,13 @@ def all_reduce_and_rescale_tensors(tensors, rescale_denom):
     offset = 0
     for t in tensors:
         numel = t.numel()
-        t.view(-1).copy_(buffer_t[offset:offset+numel])
+        t.view(-1).copy_(buffer_t[offset : offset + numel])
         offset += numel
 
 
-def all_reduce_and_rescale_tensors_chunked(tensors, rescale_denom,
-                                           buffer_size=10485760):
+def all_reduce_and_rescale_tensors_chunked(
+    tensors, rescale_denom, buffer_size=10485760
+):
     """All-reduce and rescale tensors in chunks of the specified size.
 
     Args:
@@ -53,8 +54,9 @@ def all_reduce_and_rescale_tensors_chunked(tensors, rescale_denom,
         buffer_size: all-reduce chunk size in bytes
     """
     # buffer size in bytes, determine equiv. # of elements based on data type
-    buffer_t = tensors[0].new(
-        math.ceil(buffer_size / tensors[0].element_size())).zero_()
+    buffer_t = (
+        tensors[0].new(math.ceil(buffer_size / tensors[0].element_size())).zero_()
+    )
     buffer = []
 
     def all_reduce_buffer():
@@ -62,7 +64,7 @@ def all_reduce_and_rescale_tensors_chunked(tensors, rescale_denom,
         offset = 0
         for t in buffer:
             numel = t.numel()
-            buffer_t[offset:offset+numel].copy_(t.view(-1))
+            buffer_t[offset : offset + numel].copy_(t.view(-1))
             offset += numel
 
         # all-reduce and rescale
@@ -73,7 +75,7 @@ def all_reduce_and_rescale_tensors_chunked(tensors, rescale_denom,
         offset = 0
         for t in buffer:
             numel = t.numel()
-            t.view(-1).copy_(buffer_t[offset:offset+numel])
+            t.view(-1).copy_(buffer_t[offset : offset + numel])
             offset += numel
 
     filled = 0
@@ -106,8 +108,9 @@ def broadcast_tensors(tensors, root_rank, buffer_size=10485760):
         buffer_size: broadcast chunk size in bytes
     """
     # buffer size in bytes, determine equiv. # of elements based on data type
-    buffer_t = tensors[0].new(
-        math.ceil(buffer_size / tensors[0].element_size())).zero_()
+    buffer_t = (
+        tensors[0].new(math.ceil(buffer_size / tensors[0].element_size())).zero_()
+    )
     buffer = []
 
     def broadcast_buffer():
@@ -115,7 +118,7 @@ def broadcast_tensors(tensors, root_rank, buffer_size=10485760):
         offset = 0
         for t in buffer:
             numel = t.numel()
-            buffer_t[offset:offset+numel].copy_(t.view(-1))
+            buffer_t[offset : offset + numel].copy_(t.view(-1))
             offset += numel
 
         # broadcast
@@ -125,7 +128,7 @@ def broadcast_tensors(tensors, root_rank, buffer_size=10485760):
         offset = 0
         for t in buffer:
             numel = t.numel()
-            t.view(-1).copy_(buffer_t[offset:offset+numel])
+            t.view(-1).copy_(buffer_t[offset : offset + numel])
             offset += numel
 
     filled = 0
@@ -150,25 +153,24 @@ def broadcast_tensors(tensors, root_rank, buffer_size=10485760):
 
 def _encode(enc, max_size, use_max_size=False):
     enc_size = len(enc)
-    enc_byte = max(math.floor(math.log(max_size, 256)+1), 1)
+    enc_byte = max(math.floor(math.log(max_size, 256) + 1), 1)
     if use_max_size:
         # this is used for broadcasting
-        buffer_ = torch.cuda.ByteTensor(max_size+enc_byte)
+        buffer_ = torch.cuda.ByteTensor(max_size + enc_byte)
     else:
-        buffer_ = torch.cuda.ByteTensor(enc_size+enc_byte)
+        buffer_ = torch.cuda.ByteTensor(enc_size + enc_byte)
     remainder = enc_size
     for i in range(enc_byte):
-        base = 256 ** (enc_byte-i-1)
+        base = 256 ** (enc_byte - i - 1)
         buffer_[i] = remainder // base
         remainder %= base
-    buffer_[enc_byte:enc_byte+enc_size] = torch.ByteTensor(list(enc))
+    buffer_[enc_byte : enc_byte + enc_size] = torch.ByteTensor(list(enc))
     return buffer_, enc_byte
 
 
 def _decode(buffer_, enc_byte):
-    size = sum(256 ** (enc_byte-i-1) * buffer_[i].item()
-               for i in range(enc_byte))
-    bytes_list = bytes(buffer_[enc_byte:enc_byte+size].tolist())
+    size = sum(256 ** (enc_byte - i - 1) * buffer_[i].item() for i in range(enc_byte))
+    bytes_list = bytes(buffer_[enc_byte : enc_byte + size].tolist())
     shift = size + enc_byte
     return bytes_list, shift
 
@@ -184,7 +186,7 @@ def all_gather_list(data):
     max_size = hvd.allgather(torch.tensor([enc_size]).cuda()).max().item()
     in_buffer, enc_byte = _encode(enc, max_size)
 
-    out_buffer = hvd.allgather(in_buffer[:enc_byte+enc_size])
+    out_buffer = hvd.allgather(in_buffer[: enc_byte + enc_size])
 
     results = []
     for _ in range(hvd.size()):

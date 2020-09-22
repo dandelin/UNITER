@@ -16,6 +16,7 @@ from utils.distributed import any_broadcast
 
 class MetaLoader(object):
     """ wraps multiple data loaders """
+
     def __init__(self, loaders, accum_steps=1, distributed=False):
         assert isinstance(loaders, dict)
         self.name2loader = {}
@@ -30,7 +31,7 @@ class MetaLoader(object):
                 raise ValueError()
             self.name2loader[n] = l
             self.name2iter[n] = iter(l)
-            self.sampling_pools.extend([n]*r)
+            self.sampling_pools.extend([n] * r)
 
         self.accum_steps = accum_steps
         self.distributed = distributed
@@ -89,6 +90,7 @@ class PrefetchLoader(object):
     overlap compute and cuda data transfer
     (copied and then modified from nvidia apex)
     """
+
     def __init__(self, loader):
         self.loader = loader
         self.stream = torch.cuda.Stream()

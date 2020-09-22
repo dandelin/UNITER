@@ -16,6 +16,7 @@ from utils.logger import LOGGER
 
 class NoOp(object):
     """ useful for distributed training No-Ops """
+
     def __getattr__(self, name):
         return self.noop
 
@@ -27,8 +28,9 @@ def parse_with_config(parser):
     args = parser.parse_args()
     if args.config is not None:
         config_args = json.load(open(args.config))
-        override_keys = {arg[2:].split('=')[0] for arg in sys.argv[1:]
-                         if arg.startswith('--')}
+        override_keys = {
+            arg[2:].split("=")[0] for arg in sys.argv[1:] if arg.startswith("--")
+        }
         for k, v in config_args.items():
             if k not in override_keys:
                 setattr(args, k, v)
@@ -36,17 +38,9 @@ def parse_with_config(parser):
     return args
 
 
-VE_ENT2IDX = {
-    'contradiction': 0,
-    'entailment': 1,
-    'neutral': 2
-}
+VE_ENT2IDX = {"contradiction": 0, "entailment": 1, "neutral": 2}
 
-VE_IDX2ENT = {
-    0: 'contradiction',
-    1: 'entailment',
-    2: 'neutral'
-}
+VE_IDX2ENT = {0: "contradiction", 1: "entailment", 2: "neutral"}
 
 
 class Struct(object):
@@ -60,7 +54,7 @@ def set_dropout(model, drop_p):
         if isinstance(module, torch.nn.Dropout):
             if module.p != drop_p:
                 module.p = drop_p
-                LOGGER.info(f'{name} set to {drop_p}')
+                LOGGER.info(f"{name} set to {drop_p}")
 
 
 def set_random_seed(seed):

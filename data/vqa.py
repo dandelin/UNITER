@@ -13,8 +13,8 @@ from .data import DetectFeatTxtTokDataset, pad_tensors, get_gather_index
 
 def _get_vqa_target(example, num_answers):
     target = torch.zeros(num_answers)
-    labels = example['target']['labels']
-    scores = example['target']['scores']
+    labels = example["target"]["labels"]
+    scores = example["target"]["scores"]
     if labels and scores:
         target.scatter_(0, torch.tensor(labels), torch.tensor(scores))
     return target
@@ -27,11 +27,10 @@ class VqaDataset(DetectFeatTxtTokDataset):
 
     def __getitem__(self, i):
         example = super().__getitem__(i)
-        img_feat, img_pos_feat, num_bb = self._get_img_feat(
-            example['img_fname'])
+        img_feat, img_pos_feat, num_bb = self._get_img_feat(example["img_fname"])
 
         # text input
-        input_ids = example['input_ids']
+        input_ids = example["input_ids"]
         input_ids = self.txt_db.combine_inputs(input_ids)
 
         target = _get_vqa_target(example, self.num_answers)
@@ -42,13 +41,13 @@ class VqaDataset(DetectFeatTxtTokDataset):
 
 
 def vqa_collate(inputs):
-    (input_ids, img_feats, img_pos_feats, attn_masks, targets
-     ) = map(list, unzip(inputs))
+    (input_ids, img_feats, img_pos_feats, attn_masks, targets) = map(
+        list, unzip(inputs)
+    )
 
     txt_lens = [i.size(0) for i in input_ids]
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
-    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
-                                ).unsqueeze(0)
+    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
 
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
     targets = torch.stack(targets, dim=0)
@@ -61,13 +60,15 @@ def vqa_collate(inputs):
     out_size = attn_masks.size(1)
     gather_index = get_gather_index(txt_lens, num_bbs, bs, max_tl, out_size)
 
-    batch = {'input_ids': input_ids,
-             'position_ids': position_ids,
-             'img_feat': img_feat,
-             'img_pos_feat': img_pos_feat,
-             'attn_masks': attn_masks,
-             'gather_index': gather_index,
-             'targets': targets}
+    batch = {
+        "input_ids": input_ids,
+        "position_ids": position_ids,
+        "img_feat": img_feat,
+        "img_pos_feat": img_pos_feat,
+        "attn_masks": attn_masks,
+        "gather_index": gather_index,
+        "targets": targets,
+    }
     return batch
 
 
@@ -75,14 +76,13 @@ class VqaEvalDataset(VqaDataset):
     def __getitem__(self, i):
         qid = self.ids[i]
         example = DetectFeatTxtTokDataset.__getitem__(self, i)
-        img_feat, img_pos_feat, num_bb = self._get_img_feat(
-            example['img_fname'])
+        img_feat, img_pos_feat, num_bb = self._get_img_feat(example["img_fname"])
 
         # text input
-        input_ids = example['input_ids']
+        input_ids = example["input_ids"]
         input_ids = self.txt_db.combine_inputs(input_ids)
 
-        if 'target' in example:
+        if "target" in example:
             target = _get_vqa_target(example, self.num_answers)
         else:
             target = None
@@ -93,14 +93,14 @@ class VqaEvalDataset(VqaDataset):
 
 
 def vqa_eval_collate(inputs):
-    (qids, input_ids, img_feats, img_pos_feats, attn_masks, targets
-     ) = map(list, unzip(inputs))
+    (qids, input_ids, img_feats, img_pos_feats, attn_masks, targets) = map(
+        list, unzip(inputs)
+    )
 
     txt_lens = [i.size(0) for i in input_ids]
 
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
-    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
-                                ).unsqueeze(0)
+    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
     attn_masks = pad_sequence(attn_masks, batch_first=True, padding_value=0)
     if targets[0] is None:
         targets = None
@@ -115,12 +115,14 @@ def vqa_eval_collate(inputs):
     out_size = attn_masks.size(1)
     gather_index = get_gather_index(txt_lens, num_bbs, bs, max_tl, out_size)
 
-    batch = {'qids': qids,
-             'input_ids': input_ids,
-             'position_ids': position_ids,
-             'img_feat': img_feat,
-             'img_pos_feat': img_pos_feat,
-             'attn_masks': attn_masks,
-             'gather_index': gather_index,
-             'targets': targets}
+    batch = {
+        "qids": qids,
+        "input_ids": input_ids,
+        "position_ids": position_ids,
+        "img_feat": img_feat,
+        "img_pos_feat": img_pos_feat,
+        "attn_masks": attn_masks,
+        "gather_index": gather_index,
+        "targets": targets,
+    }
     return batch

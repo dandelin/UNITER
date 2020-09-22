@@ -25,10 +25,8 @@ def trace(x):
     """ compute trace of input tensor (batched) """
     b, m, n = x.size()
     assert m == n
-    mask = torch.eye(n, dtype=torch.uint8, device=x.device
-                     ).unsqueeze(0).expand_as(x)
-    trace = x.masked_select(mask).contiguous().view(
-        b, n).sum(dim=-1, keepdim=False)
+    mask = torch.eye(n, dtype=torch.uint8, device=x.device).unsqueeze(0).expand_as(x)
+    trace = x.masked_select(mask).contiguous().view(b, n).sum(dim=-1, keepdim=False)
     return trace
 
 
@@ -36,10 +34,9 @@ def trace(x):
 def ipot(C, x_len, x_pad, y_len, y_pad, joint_pad, beta, iteration, k):
     """ [B, M, N], [B], [B, M], [B], [B, N], [B, M, N]"""
     b, m, n = C.size()
-    sigma = torch.ones(b, m, dtype=C.dtype, device=C.device
-                       ) / x_len.unsqueeze(1)
+    sigma = torch.ones(b, m, dtype=C.dtype, device=C.device) / x_len.unsqueeze(1)
     T = torch.ones(b, n, m, dtype=C.dtype, device=C.device)
-    A = torch.exp(-C.transpose(1, 2)/beta)
+    A = torch.exp(-C.transpose(1, 2) / beta)
 
     # mask padded positions
     sigma.masked_fill_(x_pad, 0)
@@ -66,20 +63,20 @@ def ipot(C, x_len, x_pad, y_len, y_pad, joint_pad, beta, iteration, k):
     return T
 
 
-def optimal_transport_dist(txt_emb, img_emb, txt_pad, img_pad,
-                           beta=0.5, iteration=50, k=1):
+def optimal_transport_dist(
+    txt_emb, img_emb, txt_pad, img_pad, beta=0.5, iteration=50, k=1
+):
     """ [B, M, D], [B, N, D], [B, M], [B, N]"""
     cost = cost_matrix_cosine(txt_emb, img_emb)
     # mask the padded inputs
     joint_pad = txt_pad.unsqueeze(-1) | img_pad.unsqueeze(-2)
     cost.masked_fill_(joint_pad, 0)
 
-    txt_len = (txt_pad.size(1) - txt_pad.sum(dim=1, keepdim=False)
-               ).to(dtype=cost.dtype)
-    img_len = (img_pad.size(1) - img_pad.sum(dim=1, keepdim=False)
-               ).to(dtype=cost.dtype)
+    txt_len = (txt_pad.size(1) - txt_pad.sum(dim=1, keepdim=False)).to(dtype=cost.dtype)
+    img_len = (img_pad.size(1) - img_pad.sum(dim=1, keepdim=False)).to(dtype=cost.dtype)
 
-    T = ipot(cost.detach(), txt_len, txt_pad, img_len, img_pad, joint_pad,
-             beta, iteration, k)
+    T = ipot(
+        cost.detach(), txt_len, txt_pad, img_len, img_pad, joint_pad, beta, iteration, k
+    )
     distance = trace(cost.matmul(T.detach()))
     return distance

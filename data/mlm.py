@@ -10,8 +10,7 @@ import torch
 from torch.nn.utils.rnn import pad_sequence
 from toolz.sandbox import unzip
 
-from .data import (DetectFeatTxtTokDataset, TxtTokLmdb,
-                   pad_tensors, get_gather_index)
+from .data import DetectFeatTxtTokDataset, TxtTokLmdb, pad_tensors, get_gather_index
 
 
 def random_word(tokens, vocab_range, mask):
@@ -72,23 +71,20 @@ class MlmDataset(DetectFeatTxtTokDataset):
         example = super().__getitem__(i)
 
         # text input
-        input_ids, txt_labels = self.create_mlm_io(example['input_ids'])
+        input_ids, txt_labels = self.create_mlm_io(example["input_ids"])
 
         # img input
-        img_feat, img_pos_feat, num_bb = self._get_img_feat(
-            example['img_fname'])
+        img_feat, img_pos_feat, num_bb = self._get_img_feat(example["img_fname"])
 
         attn_masks = torch.ones(len(input_ids) + num_bb, dtype=torch.long)
 
         return input_ids, img_feat, img_pos_feat, attn_masks, txt_labels
 
     def create_mlm_io(self, input_ids):
-        input_ids, txt_labels = random_word(input_ids,
-                                            self.txt_db.v_range,
-                                            self.txt_db.mask)
-        input_ids = torch.tensor([self.txt_db.cls_]
-                                 + input_ids
-                                 + [self.txt_db.sep])
+        input_ids, txt_labels = random_word(
+            input_ids, self.txt_db.v_range, self.txt_db.mask
+        )
+        input_ids = torch.tensor([self.txt_db.cls_] + input_ids + [self.txt_db.sep])
         txt_labels = torch.tensor([-1] + txt_labels + [-1])
         return input_ids, txt_labels
 
@@ -105,15 +101,15 @@ def mlm_collate(inputs):
     :attn_masks   (n, max_{L + num_bb}) padded with 0
     :txt_labels   (n, max_L) padded with -1
     """
-    (input_ids, img_feats, img_pos_feats, attn_masks, txt_labels
-     ) = map(list, unzip(inputs))
+    (input_ids, img_feats, img_pos_feats, attn_masks, txt_labels) = map(
+        list, unzip(inputs)
+    )
 
     # text batches
     txt_lens = [i.size(0) for i in input_ids]
     input_ids = pad_sequence(input_ids, batch_first=True, padding_value=0)
     txt_labels = pad_sequence(txt_labels, batch_first=True, padding_value=-1)
-    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long
-                                ).unsqueeze(0)
+    position_ids = torch.arange(0, input_ids.size(1), dtype=torch.long).unsqueeze(0)
 
     # image batches
     num_bbs = [f.size(0) for f in img_feats]
@@ -126,11 +122,13 @@ def mlm_collate(inputs):
     out_size = attn_masks.size(1)
     gather_index = get_gather_index(txt_lens, num_bbs, bs, max_tl, out_size)
 
-    batch = {'input_ids': input_ids,
-             'position_ids': position_ids,
-             'img_feat': img_feat,
-             'img_pos_feat': img_pos_feat,
-             'attn_masks': attn_masks,
-             'gather_index': gather_index,
-             'txt_labels': txt_labels}
+    batch = {
+        "input_ids": input_ids,
+        "position_ids": position_ids,
+        "img_feat": img_feat,
+        "img_pos_feat": img_pos_feat,
+        "attn_masks": attn_masks,
+        "gather_index": gather_index,
+        "txt_labels": txt_labels,
+    }
     return batch
